@@ -20,7 +20,7 @@ const postSchema = new mongoose.Schema(
     },
     coverImage: {
       type: String,
-      default: 'https://picsum.photos/1080/720'
+      default: 'https://res.cloudinary.com/dgcrdcezz/image/upload/v1/blog-tech/defaults/default-post-cover'
     },
     category: {
       type: String,

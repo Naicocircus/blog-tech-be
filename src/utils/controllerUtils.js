@@ -19,6 +19,21 @@ const sendResponse = (res, data, statusCode = 200) => {
 // Funzione per caricare un file su Cloudinary
 const uploadToCloudinary = async (file, folder) => {
     try {
+        // Se non c'è un file, non procedere con l'upload
+        if (!file) {
+            console.log('[Cloudinary] Nessun file fornito, uso immagine default');
+            return 'https://res.cloudinary.com/dgcrdcezz/image/upload/v1/blog-tech/defaults/default-post-cover';
+        }
+
+        // Log iniziale più dettagliato
+        console.log('[Cloudinary] File ricevuto:', {
+            fileType: typeof file,
+            hasTemp: !!file.tempFilePath,
+            hasPath: !!file.path,
+            mimeType: file.mimetype,
+            size: file.size
+        });
+        
         console.log('Tentativo di upload su Cloudinary:', {
             fileName: file.name || file.originalname,
             fileSize: file.size,
@@ -72,14 +87,8 @@ const uploadToCloudinary = async (file, folder) => {
         console.error('File non valido:', file);
         throw new Error('File non valido per il caricamento');
     } catch (error) {
-        console.error('Errore durante il caricamento su Cloudinary:', error);
-        
-        if (error.http_code) {
-            console.error('Codice HTTP Cloudinary:', error.http_code);
-            console.error('Messaggio errore Cloudinary:', error.message);
-        }
-        
-        throw new Error(`Errore durante il caricamento del file: ${error.message}`);
+        console.error('[Cloudinary] Errore upload:', error);
+        throw error;
     }
 };
 
