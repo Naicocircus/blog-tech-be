@@ -17,29 +17,69 @@ const sendResponse = (res, data, statusCode = 200) => {
 };
 
 // Funzione per caricare un file su Cloudinary
-const uploadToCloudinary = async (file) => {
+const uploadToCloudinary = async (file, folder) => {
     try {
-        // Verifica che il file sia valido
-        if (!file || !file.tempFilePath) {
-            throw new Error('Invalid file');
+        console.log('Tentativo di upload su Cloudinary:', {
+            fileName: file.name || file.originalname,
+            fileSize: file.size,
+            filePath: file.tempFilePath || file.path,
+            mimeType: file.mimetype,
+            folder: `blog-tech/${folder}`
+        });
+        
+        // Se il file è un URL, ritorna l'URL stesso
+        if (typeof file === 'string' && (file.startsWith('http://') || file.startsWith('https://'))) {
+            console.log('File è già un URL, ritorno direttamente:', file);
+            return file;
         }
 
-        const result = await cloudinary.uploader.upload(file.tempFilePath, {
-            resource_type: 'auto',
-            folder: 'blog-posts',
-            transformation: [
-                { width: 1080, height: 720, crop: 'fill' },
-                { quality: 'auto' }
-            ]
-        });
-
-        return {
-            secure_url: result.secure_url,
-            public_id: result.public_id
-        };
+        // Gestione file da express-fileupload
+        if (file.tempFilePath) {
+            const result = await cloudinary.uploader.upload(file.tempFilePath, {
+                folder: `blog-tech/${folder}`,
+                use_filename: true,
+                resource_type: 'auto'
+            });
+            
+            console.log('Upload su Cloudinary completato con successo:', {
+                publicId: result.public_id,
+                url: result.secure_url,
+                format: result.format,
+                size: result.bytes
+            });
+            
+            return result.secure_url;
+        }
+        
+        // Gestione file da multer
+        if (file.path) {
+            const result = await cloudinary.uploader.upload(file.path, {
+                folder: `blog-tech/${folder}`,
+                use_filename: true,
+                resource_type: 'auto'
+            });
+            
+            console.log('Upload su Cloudinary completato con successo:', {
+                publicId: result.public_id,
+                url: result.secure_url,
+                format: result.format,
+                size: result.bytes
+            });
+            
+            return result.secure_url;
+        }
+        
+        console.error('File non valido:', file);
+        throw new Error('File non valido per il caricamento');
     } catch (error) {
-        console.error('Error in uploadToCloudinary:', error);
-        throw error;
+        console.error('Errore durante il caricamento su Cloudinary:', error);
+        
+        if (error.http_code) {
+            console.error('Codice HTTP Cloudinary:', error.http_code);
+            console.error('Messaggio errore Cloudinary:', error.message);
+        }
+        
+        throw new Error(`Errore durante il caricamento del file: ${error.message}`);
     }
 };
 
