@@ -150,8 +150,11 @@ const getPost = async (req, res) => {
 // @access  Private
 const createPost = async (req, res) => {
   try {
-    console.log('Received post data:', req.body);
-    
+    console.log('[CreatePost] Received data:', {
+      body: req.body,
+      files: req.files ? Object.keys(req.files) : 'No files'
+    });
+
     // Verifica che i campi obbligatori siano presenti
     const requiredFields = ['title', 'content', 'excerpt', 'category'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -168,13 +171,25 @@ const createPost = async (req, res) => {
 
     let coverImageUrl = null;
     
-    // Se è stata caricata un'immagine di copertina
+    // Gestione upload immagine
     if (req.files && req.files.image) {
       try {
+        console.log('[CreatePost] Processing image upload');
         const result = await uploadToCloudinary(req.files.image, 'posts');
-        coverImageUrl = result.secure_url;
+        if (!result) {
+          throw new Error('Upload fallito - nessun risultato da Cloudinary');
+        }
+        console.log('[CreatePost] Cloudinary result:', result);
+        
+        // Usa l'URL sicuro da Cloudinary
+        coverImageUrl = result;
+        console.log('[CreatePost] Image URL:', coverImageUrl);
       } catch (error) {
-        console.error('Errore upload immagine:', error);
+        console.error('[CreatePost] Image upload error:', error);
+        return res.status(400).json({
+          success: false,
+          message: `Errore upload immagine: ${error.message}`
+        });
       }
     }
 
@@ -203,7 +218,7 @@ const createPost = async (req, res) => {
       status: req.body.status || 'published'
     };
 
-    console.log('Creating post with data:', postData);
+    console.log('[CreatePost] Final post data:', postData);
     const post = await Post.create(postData);
     
     return res.status(201).json({
@@ -212,24 +227,10 @@ const createPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Errore nella creazione del post:', error);
-    
-    // Se è un errore di validazione di Mongoose
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => ({
-        field: err.path,
-        message: err.message
-      }));
-      
-      return res.status(400).json({
-        success: false,
-        errors
-      });
-    }
-    
+    console.error('[CreatePost] Error:', error);
     return res.status(500).json({
       success: false,
-      errors: [{ message: 'Errore durante la creazione del post' }]
+      message: error.message || 'Errore durante la creazione del post'
     });
   }
 };

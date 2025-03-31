@@ -20,7 +20,7 @@ const postSchema = new mongoose.Schema(
     },
     coverImage: {
       type: String,
-      default: 'https://res.cloudinary.com/dgcrdcezz/image/upload/v1/blog-tech/defaults/default-post-cover'
+      default: null
     },
     category: {
       type: String,
@@ -144,6 +144,11 @@ postSchema.pre('save', function(next) {
   // Aggiorna il conteggio dei like
   if (this.likes) {
     this.likesCount = this.likes.length;
+  }
+  
+  // Se non c'è un'immagine di copertina, usa quella di default
+  if (!this.coverImage) {
+    this.coverImage = 'https://res.cloudinary.com/dgcrdcezz/image/upload/v1/blog-tech/defaults/default-post-cover';
   }
   
   next();
