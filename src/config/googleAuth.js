@@ -17,7 +17,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 const config = {
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'http://localhost:5052/api/auth/google/callback',
+  callbackURL: 'https://blog-tech-be.onrender.com/api/auth/google/callback',
   scope: ['profile', 'email']
 };
 

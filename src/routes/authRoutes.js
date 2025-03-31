@@ -32,7 +32,7 @@ router.get('/google/callback',
   (req, res) => {
     // Genera il token JWT
     const token = req.user.getSignedJwtToken();
-    res.redirect(`http://localhost:3000/auth/google/success?token=${token}`);
+    res.redirect(`https://blog-tech-eight.vercel.app/auth/google/success?token=${token}`);
   }
 );
 

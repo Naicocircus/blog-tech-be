@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5052;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', '*'],
+    origin: ['https://blog-tech-eight.vercel.app'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
