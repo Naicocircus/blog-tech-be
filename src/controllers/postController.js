@@ -150,87 +150,44 @@ const getPost = async (req, res) => {
 // @access  Private
 const createPost = async (req, res) => {
   try {
-    console.log('Received post data:', req.body);
-    
-    // Verifica che i campi obbligatori siano presenti
-    const requiredFields = ['title', 'content', 'excerpt', 'category'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        errors: missingFields.map(field => ({
-          field,
-          message: `Il campo ${field} è obbligatorio`
-        }))
-      });
-    }
+    // Aggiungi log per debugging
+    console.log('Creating post with data:', req.body);
+    console.log('Files received:', req.files);
 
-    let coverImageUrl = null;
-    
-    // Se è stata caricata un'immagine di copertina
-    if (req.files && req.files.image) {
+    const { title, content, category, tags, status = 'draft' } = req.body;
+    let coverImage = '';
+
+    // Gestione dell'immagine di copertina
+    if (req.files && req.files.coverImage) {
       try {
-        const result = await uploadToCloudinary(req.files.image, 'posts');
-        coverImageUrl = result;
+        console.log('Uploading cover image to Cloudinary...');
+        const result = await uploadToCloudinary(req.files.coverImage);
+        coverImage = result.secure_url; // Usa secure_url invece di url
+        console.log('Cover image uploaded:', coverImage);
       } catch (error) {
-        console.error('Errore upload immagine:', error);
+        console.error('Error uploading to Cloudinary:', error);
+        return handleError(res, 'Error uploading image', 500);
       }
     }
 
-    // Gestione dei tag
-    let tags = [];
-    if (req.body.tags) {
-      if (typeof req.body.tags === 'string') {
-        try {
-          tags = JSON.parse(req.body.tags);
-        } catch {
-          tags = req.body.tags.split(',').map(tag => tag.trim());
-        }
-      } else if (Array.isArray(req.body.tags)) {
-        tags = req.body.tags;
-      }
-    }
+    // Crea il post con l'URL sicuro dell'immagine
+    const post = await Post.create({
+      title,
+      content,
+      category,
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      author: req.user.id,
+      coverImage,
+      status
+    });
 
-    const postData = {
-      title: req.body.title,
-      content: req.body.content,
-      excerpt: req.body.excerpt,
-      category: req.body.category,
-      coverImage: coverImageUrl,
-      tags,
-      author: req.user._id,
-      status: req.body.status || 'published'
-    };
-
-    console.log('Creating post with data:', postData);
-    const post = await Post.create(postData);
-    
     return res.status(201).json({
       success: true,
       data: post
     });
-
   } catch (error) {
-    console.error('Errore nella creazione del post:', error);
-    
-    // Se è un errore di validazione di Mongoose
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => ({
-        field: err.path,
-        message: err.message
-      }));
-      
-      return res.status(400).json({
-        success: false,
-        errors
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      errors: [{ message: 'Errore durante la creazione del post' }]
-    });
+    console.error('Error in createPost:', error);
+    return handleError(res, error.message);
   }
 };
 
@@ -239,13 +196,12 @@ const createPost = async (req, res) => {
 // @access  Private
 const updatePost = async (req, res) => {
   try {
+    console.log('Updating post with data:', req.body);
+    console.log('Files received:', req.files);
+
     let post = await Post.findById(req.params.id);
-    
     if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post non trovato'
-      });
+      return handleError(res, 'Post not found', 404);
     }
 
     // Verifica che l'utente sia l'autore del post o un admin
@@ -256,24 +212,23 @@ const updatePost = async (req, res) => {
       });
     }
 
+    // Gestione dell'immagine di copertina per l'aggiornamento
+    if (req.files && req.files.coverImage) {
+      try {
+        console.log('Uploading new cover image to Cloudinary...');
+        const result = await uploadToCloudinary(req.files.coverImage);
+        req.body.coverImage = result.secure_url; // Usa secure_url
+        console.log('New cover image uploaded:', req.body.coverImage);
+      } catch (error) {
+        console.error('Error uploading to Cloudinary:', error);
+        return handleError(res, 'Error uploading image', 500);
+      }
+    }
+
     // Crea una copia del body per le modifiche
     let updateData = { ...req.body };
     delete updateData._id;
     delete updateData.__v;
-
-    // Gestione dell'immagine di copertina
-    if (req.files && req.files.image) {
-      try {
-        const imageUrl = await uploadToCloudinary(req.files.image, 'posts');
-        updateData.coverImage = imageUrl;
-      } catch (uploadError) {
-        console.error('Errore upload immagine:', uploadError);
-        return res.status(400).json({
-          success: false,
-          message: `Errore caricamento immagine: ${uploadError.message}`
-        });
-      }
-    }
 
     // Gestione dei tag
     if (updateData.tags) {
@@ -301,11 +256,8 @@ const updatePost = async (req, res) => {
       data: updatedPost
     });
   } catch (error) {
-    console.error('Errore durante l\'aggiornamento:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    console.error('Error in updatePost:', error);
+    return handleError(res, error.message);
   }
 };
 
