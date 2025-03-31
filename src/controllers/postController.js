@@ -634,24 +634,29 @@ function getPlatformName(platform) {
 const getShareStats = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id).select('shareCount shares');
-    
+
     if (!post) {
       return handleError(res, new Error('Post non trovato'), 404);
     }
-    
-    // Calcola le statistiche per piattaforma
+
     const platformStats = {};
-    
+
     post.shares.forEach(share => {
       platformStats[share.platform] = (platformStats[share.platform] || 0) + 1;
     });
-    
+
     sendResponse(res, {
       shareCount: post.shareCount,
       platforms: platformStats
     });
+
   } catch (error) {
-    handleError(res, error);
+    console.error('[API] Errore in getShareStats:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Errore nel recupero delle statistiche di condivisione',
+      error: error.message
+    });
   }
 };
 
