@@ -172,7 +172,7 @@ const createPost = async (req, res) => {
     if (req.files && req.files.image) {
       try {
         const result = await uploadToCloudinary(req.files.image, 'posts');
-        coverImageUrl = result;
+        coverImageUrl = result.secure_url;
       } catch (error) {
         console.error('Errore upload immagine:', error);
       }
